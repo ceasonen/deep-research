@@ -42,6 +42,14 @@ export default function Page() {
           initialQuery={query}
           runtimeModel={runtimeLLMConfig?.model}
         />
+        {runtimeLLMConfig?.model ? (
+          <div className="glass-panel section-enter p-3 text-xs text-ink/80">
+            Active Runtime Model: <span className="font-semibold">{runtimeLLMConfig.model}</span>
+            {runtimeLLMConfig.model !== 'gemini-2.5-flash' ? (
+              <span className="ml-2 text-ember">Not `gemini-2.5-flash`</span>
+            ) : null}
+          </div>
+        ) : null}
         {!hasResults && !loading ? (
           <section className="glass-panel section-enter stagger-2 p-5">
             <p className="font-compact text-xs uppercase tracking-[0.22em] text-ink/60">Ready</p>

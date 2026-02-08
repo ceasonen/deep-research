@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+import { loadReaderState } from '@/lib/readerState';
+
 function getSafeArxivPdfUrl(raw: string | undefined): string {
   if (!raw) return '';
   try {
@@ -21,30 +23,53 @@ function getSafeArxivPdfUrl(raw: string | undefined): string {
   }
 }
 
+function splitList(raw: string | null): string[] {
+  return (raw || '')
+    .split('|')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export function ReaderClient() {
   const router = useRouter();
   const params = useSearchParams();
   const [loaded, setLoaded] = useState(false);
   const [slowLoad, setSlowLoad] = useState(false);
-  const pdfUrl = useMemo(() => getSafeArxivPdfUrl(params.get('pdf') || ''), [params]);
-  const title = (params.get('title') || 'ArXiv Paper').trim();
-  const arxivId = params.get('id') || '';
-  const published = params.get('published') || '';
-  const authors = (params.get('authors') || '')
-    .split('|')
-    .map((item) => item.trim())
-    .filter(Boolean);
-  const categories = (params.get('categories') || '')
-    .split('|')
-    .map((item) => item.trim())
-    .filter(Boolean);
-  const codeRepo = params.get('code') || '';
-  const method = params.get('method') || '';
-  const limits = params.get('limits') || '';
+  const [blocked, setBlocked] = useState(false);
+  const [viewerMode, setViewerMode] = useState<'native' | 'google'>('native');
+
+  const rid = params.get('rid');
+  const stored = useMemo(() => loadReaderState(rid), [rid]);
+
+  const pdfUrl = useMemo(() => {
+    const raw = stored?.pdf || params.get('pdf') || '';
+    return getSafeArxivPdfUrl(raw);
+  }, [params, stored]);
+  const title = (stored?.title || params.get('title') || 'ArXiv Paper').trim();
+  const arxivId = stored?.id || params.get('id') || '';
+  const published = stored?.published || params.get('published') || '';
+  const authors = stored?.authors || splitList(params.get('authors'));
+  const categories = stored?.categories || splitList(params.get('categories'));
+  const codeRepo = stored?.code || params.get('code') || '';
+  const method = stored?.method || params.get('method') || '';
+  const limits = stored?.limits || params.get('limits') || '';
+
+  const viewerSrc = useMemo(() => {
+    if (!pdfUrl) return '';
+    if (viewerMode === 'google') {
+      return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(pdfUrl)}`;
+    }
+    return pdfUrl;
+  }, [pdfUrl, viewerMode]);
 
   function goBack() {
     if (window.history.length > 1) {
       router.back();
+      window.setTimeout(() => {
+        if (window.location.pathname.startsWith('/reader')) {
+          router.push('/');
+        }
+      }, 180);
       return;
     }
     router.push('/');
@@ -53,11 +78,16 @@ export function ReaderClient() {
   useEffect(() => {
     setLoaded(false);
     setSlowLoad(false);
+    setBlocked(false);
     if (!pdfUrl) return;
 
     const timer = window.setTimeout(() => setSlowLoad(true), 6000);
-    return () => window.clearTimeout(timer);
-  }, [pdfUrl]);
+    const blockedTimer = window.setTimeout(() => setBlocked(true), 12000);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(blockedTimer);
+    };
+  }, [pdfUrl, viewerMode]);
 
   return (
     <section className="section-enter w-full space-y-4">
@@ -103,9 +133,16 @@ export function ReaderClient() {
                     <div className="mx-auto h-2 w-44 overflow-hidden rounded-full bg-ink/10">
                       <div className="h-2 w-1/3 animate-[progress_1.1s_infinite] rounded-full bg-mint" />
                     </div>
-                    <p className="mt-3 text-sm text-ink/70">Loading PDF viewer...</p>
+                    <p className="mt-3 text-sm text-ink/70">Loading PDF viewer ({viewerMode})...</p>
                     {slowLoad ? (
-                      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                      <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-left">
+                        <button
+                          type="button"
+                          onClick={() => setViewerMode((prev) => (prev === 'native' ? 'google' : 'native'))}
+                          className="inline-flex rounded-full border border-ink/20 bg-white/85 px-4 py-2 text-xs text-ink"
+                        >
+                          Switch to {viewerMode === 'native' ? 'Google Viewer' : 'Native Viewer'}
+                        </button>
                         <a
                           href={pdfUrl}
                           className="inline-flex rounded-full border border-ink/20 bg-white/85 px-4 py-2 text-xs text-ink"
@@ -122,11 +159,17 @@ export function ReaderClient() {
                         </a>
                       </div>
                     ) : null}
+                    {blocked ? (
+                      <p className="mt-3 max-w-md text-xs text-ember">
+                        Embedded loading timed out. This can happen when the PDF host blocks iframe rendering. Use
+                        "Open in this tab" for a guaranteed load path.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
               <iframe
-                src={pdfUrl}
+                src={viewerSrc}
                 title={title}
                 className="h-full w-full"
                 referrerPolicy="no-referrer"

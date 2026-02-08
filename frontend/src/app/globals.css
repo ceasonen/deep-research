@@ -22,6 +22,10 @@
   --panel: rgba(14, 24, 36, 0.76);
   --panel-border: rgba(230, 238, 246, 0.16);
   --focus: #ffa070;
+  --control-bg: rgba(22, 34, 49, 0.9);
+  --control-border: rgba(230, 238, 246, 0.26);
+  --placeholder: rgba(230, 238, 246, 0.62);
+  --muted: rgba(230, 238, 246, 0.78);
 }
 
 * {
@@ -225,15 +229,66 @@ main > * {
   background-color: var(--panel) !important;
 }
 
+:root[data-theme='dark'] .bg-white\/80,
+:root[data-theme='dark'] .bg-white\/85 {
+  background-color: var(--control-bg) !important;
+}
+
 :root[data-theme='dark'] .text-ink,
 :root[data-theme='dark'] .prose,
 :root[data-theme='dark'] .prose * {
   color: var(--ink);
 }
 
+:root[data-theme='dark'] .text-ink\/60,
+:root[data-theme='dark'] .text-ink\/65,
+:root[data-theme='dark'] .text-ink\/70,
+:root[data-theme='dark'] .text-ink\/75,
+:root[data-theme='dark'] .text-ink\/80,
+:root[data-theme='dark'] .text-ink\/85,
+:root[data-theme='dark'] .text-ink\/90 {
+  color: var(--muted) !important;
+}
+
 :root[data-theme='dark'] .glass-panel {
   border-color: var(--panel-border);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.34);
+}
+
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] select,
+:root[data-theme='dark'] textarea {
+  color: var(--ink) !important;
+  background-color: var(--control-bg) !important;
+  border-color: var(--control-border) !important;
+}
+
+:root[data-theme='dark'] input::placeholder,
+:root[data-theme='dark'] textarea::placeholder {
+  color: var(--placeholder) !important;
+}
+
+:root[data-theme='dark'] button,
+:root[data-theme='dark'] a {
+  color: var(--ink);
+}
+
+:root[data-theme='dark'] .bg-sand {
+  background-color: rgba(27, 45, 65, 0.88) !important;
+}
+
+:root[data-theme='dark'] .prose a {
+  color: #8fd9ff !important;
+}
+
+:root[data-theme='dark'] .border-ink\/10,
+:root[data-theme='dark'] .border-ink\/15,
+:root[data-theme='dark'] .border-ink\/20 {
+  border-color: rgba(230, 238, 246, 0.24) !important;
+}
+
+:root[data-theme='dark'] .shadow-soft {
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35) !important;
 }
 
 @media (max-width: 768px) {

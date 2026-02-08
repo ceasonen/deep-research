@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 
+from backend.config import get_settings
 from backend.llm.client import LLMClient
 from backend.utils.logger import get_logger
 
@@ -13,22 +14,36 @@ logger = get_logger(__name__)
 
 class ArxivPaperAnalyzer:
     def __init__(self) -> None:
+        self.settings = get_settings()
         self.client = LLMClient()
 
     async def analyze_many(
         self, papers: list[dict], query: str, llm_config: dict | None = None
     ) -> list[dict]:
+        llm_budget = min(len(papers), max(0, self.settings.arxiv_analysis_llm_budget))
+        can_use_llm = llm_budget > 0 and self.client.is_available_for(llm_config)
         enriched: list[dict] = []
-        for paper in papers:
-            analysis = await self.analyze_paper(query=query, paper=paper, llm_config=llm_config)
+        for index, paper in enumerate(papers):
+            analysis = await self.analyze_paper(
+                query=query,
+                paper=paper,
+                llm_config=llm_config,
+                use_llm=can_use_llm and index < llm_budget,
+            )
             item = dict(paper)
             item.update(analysis)
             enriched.append(item)
         return enriched
 
-    async def analyze_paper(self, query: str, paper: dict, llm_config: dict | None = None) -> dict:
+    async def analyze_paper(
+        self,
+        query: str,
+        paper: dict,
+        llm_config: dict | None = None,
+        use_llm: bool = True,
+    ) -> dict:
         fallback = self._fallback_analysis(paper)
-        if not self.client.is_available_for(llm_config):
+        if not use_llm or not self.client.is_available_for(llm_config):
             return fallback
 
         system_prompt = (
@@ -51,6 +66,8 @@ class ArxivPaperAnalyzer:
                 user_prompt=user_prompt,
                 runtime_config=llm_config,
             )
+            if not raw.strip():
+                return fallback
             parsed = self._parse_json(raw)
             if not parsed:
                 return fallback

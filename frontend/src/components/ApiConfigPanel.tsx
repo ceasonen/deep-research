@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
+import { postLLMVerify } from '@/lib/api';
 import type { RuntimeLLMConfig } from '@/types';
 
 interface ApiConfigPanelProps {
@@ -18,6 +19,8 @@ const presets = [
 
 export function ApiConfigPanel({ config, onSave }: ApiConfigPanelProps) {
   const [open, setOpen] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [draft, setDraft] = useState<RuntimeLLMConfig>({
     base_url: config?.base_url || '',
     api_key: config?.api_key || '',
@@ -40,6 +43,7 @@ export function ApiConfigPanel({ config, onSave }: ApiConfigPanelProps) {
       max_tokens: config?.max_tokens ?? 1200,
     });
     setOpen(true);
+    setTestResult(null);
   }
 
   function savePanel() {
@@ -58,6 +62,30 @@ export function ApiConfigPanel({ config, onSave }: ApiConfigPanelProps) {
       onSave(cleaned);
     }
     setOpen(false);
+  }
+
+  async function runVerify() {
+    const payload: RuntimeLLMConfig = {
+      base_url: (draft.base_url || '').trim(),
+      api_key: (draft.api_key || '').trim(),
+      model: (draft.model || '').trim(),
+      temperature: draft.temperature ?? 0.2,
+      max_tokens: draft.max_tokens ?? 1200,
+    };
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const response = await postLLMVerify(payload);
+      const data = (await response.json()) as { ok: boolean; model_used: string; message: string };
+      setTestResult({
+        ok: Boolean(data.ok),
+        text: `${data.ok ? 'OK' : 'Failed'} · ${data.model_used} · ${data.message}`,
+      });
+    } catch (error) {
+      setTestResult({ ok: false, text: `Failed · ${(error as Error).message}` });
+    } finally {
+      setTesting(false);
+    }
   }
 
   return (
@@ -114,7 +142,7 @@ export function ApiConfigPanel({ config, onSave }: ApiConfigPanelProps) {
                 value={draft.api_key || ''}
                 onChange={(event) => setDraft((prev) => ({ ...prev, api_key: event.target.value }))}
                 className="soft-ring h-11 w-full rounded-xl border border-ink/20 bg-white/85 px-3 text-sm text-ink outline-none"
-                placeholder="sk-..."
+                placeholder="AIza... or sk-..."
               />
             </label>
 
@@ -157,6 +185,14 @@ export function ApiConfigPanel({ config, onSave }: ApiConfigPanelProps) {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
+                onClick={runVerify}
+                disabled={testing}
+                className="soft-ring rounded-full border border-ink/20 bg-white/75 px-4 py-2 text-sm text-ink disabled:opacity-60"
+              >
+                {testing ? 'Testing...' : 'Test Connection'}
+              </button>
+              <button
+                type="button"
                 onClick={savePanel}
                 className="soft-ring rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white"
               >
@@ -174,6 +210,11 @@ export function ApiConfigPanel({ config, onSave }: ApiConfigPanelProps) {
               </button>
               <p className="text-xs text-ink/65">Saved locally in your browser. Sent only with your search requests.</p>
             </div>
+            {testResult ? (
+              <p className={`rounded-xl p-2 text-xs ${testResult.ok ? 'bg-mint/20 text-ink' : 'bg-ember/15 text-ember'}`}>
+                {testResult.text}
+              </p>
+            ) : null}
           </section>
         </div>
       ) : null}

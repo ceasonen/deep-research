@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"
     llm_temperature: float = 0.2
     llm_max_tokens: int = 1200
+    llm_api_key_file: str | None = "key.txt"
+    llm_auto_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    llm_auto_model: str = "gemini-2.5-flash"
+    llm_cooldown_default_seconds: float = 12.0
 
     search_engines: list[str] = Field(default_factory=lambda: ["duckduckgo"])
     search_max_results: int = 8
@@ -36,6 +40,7 @@ class Settings(BaseSettings):
     )
     arxiv_min_interval_seconds: float = 3.0
     arxiv_max_results: int = 24
+    arxiv_analysis_llm_budget: int = Field(default=0, ge=0, le=10)
 
     content_max_pages: int = 6
     content_max_length: int = 3500

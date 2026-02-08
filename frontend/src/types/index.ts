@@ -40,3 +40,9 @@ export interface SearchEvent {
   event: string;
   data: any;
 }
+
+export interface LLMVerifyResponse {
+  ok: boolean;
+  model_used: string;
+  message: string;
+}

@@ -1,3 +1,8 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+
+import { saveReaderState } from '@/lib/readerState';
 import { formatHost } from '@/lib/utils';
 import type { SearchSource } from '@/types';
 
@@ -8,22 +13,21 @@ interface SourceCardProps {
 }
 
 export function SourceCard({ source, index, viewMode = 'grid' }: SourceCardProps) {
+  const router = useRouter();
   const isArxiv = source.source_engine === 'arxiv' || Boolean(source.pdf_url) || Boolean(source.arxiv_id);
-  const params = new URLSearchParams({
-    pdf: source.pdf_url || '',
-    title: source.title || 'ArXiv Paper',
-    id: source.arxiv_id || '',
-    published: source.published_date || '',
-    authors: (source.authors || []).join(' | '),
-    categories: (source.categories || []).join(' | '),
-    code: source.code_repo_url || '',
-    method: source.method_highlights || '',
-    limits: source.limitations || '',
-  });
-  const readerUrl = source.pdf_url
-    ? `/reader?${params.toString()}`
-    : '';
   const listLayout = viewMode === 'list';
+
+  function openReader() {
+    if (!source.pdf_url) return;
+    const rid = saveReaderState(source);
+    const params = new URLSearchParams({
+      rid,
+      pdf: source.pdf_url,
+      title: source.title || 'ArXiv Paper',
+      id: source.arxiv_id || '',
+    });
+    router.push(`/reader?${params.toString()}`);
+  }
 
   if (isArxiv) {
     return (
@@ -78,13 +82,14 @@ export function SourceCard({ source, index, viewMode = 'grid' }: SourceCardProps
             ) : null}
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            {readerUrl ? (
-              <a
-                href={readerUrl}
+            {source.pdf_url ? (
+              <button
+                type="button"
+                onClick={openReader}
                 className="soft-ring rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
               >
                 Read PDF
-              </a>
+              </button>
             ) : null}
             {source.pdf_url ? (
               <a

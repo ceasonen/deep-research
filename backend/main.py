@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.config import get_settings
-from backend.models.schemas import HealthResponse, SearchRequest
+from backend.models.schemas import HealthResponse, RuntimeLLMConfig, SearchRequest
 from backend.pipeline.search_pipeline import SearchPipeline
 from backend.utils.logger import setup_logging
 
@@ -51,6 +51,37 @@ async def search(request: SearchRequest):
 
     data = await pipeline.search_sync(request)
     return JSONResponse(content=data)
+
+
+@app.post("/api/llm/verify")
+async def verify_llm(config: RuntimeLLMConfig | None = None):
+    runtime_cfg = config.model_dump(exclude_none=True) if config else None
+    client = pipeline.synthesizer.client
+    model_used = client.resolved_model(runtime_cfg)
+
+    if not client.is_available_for(runtime_cfg):
+        return JSONResponse(
+            status_code=200,
+            content={
+                "ok": False,
+                "model_used": model_used,
+                "message": "LLM configuration is incomplete or unavailable.",
+            },
+        )
+
+    result = await client.complete(
+        system_prompt="You are a test endpoint. Reply in one short line.",
+        user_prompt="Respond with: LLM_OK",
+        runtime_config=runtime_cfg,
+    )
+    ok = bool(result.strip())
+    message = result[:180] if ok else (client.last_error_message or "LLM request failed.")
+
+    return {
+        "ok": ok,
+        "model_used": model_used,
+        "message": message,
+    }
 
 
 frontend_export = Path("frontend/out")

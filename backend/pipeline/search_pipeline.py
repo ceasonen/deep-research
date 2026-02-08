@@ -168,9 +168,8 @@ class SearchPipeline:
         return "\n".join(lines)
 
     def _model_used(self, request: SearchRequest) -> str:
-        if request.llm_config and request.llm_config.model:
-            return request.llm_config.model
-        return self.settings.llm_model
+        llm_config = self._request_llm_config(request)
+        return self.synthesizer.client.resolved_model(llm_config)
 
     async def search_sync(self, request: SearchRequest) -> dict:
         llm_cfg = self._request_llm_config(request) or {}
