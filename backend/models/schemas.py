@@ -11,6 +11,7 @@ class SearchMode(str, Enum):
     QUICK = "quick"
     DEEP = "deep"
     ACADEMIC = "academic"
+    ARXIV = "arxiv"
 
 
 class SearchRequest(BaseModel):
@@ -30,6 +31,15 @@ class SearchSource(BaseModel):
     source_engine: str = "unknown"
     favicon_url: str | None = None
     published_date: str | None = None
+    arxiv_id: str | None = None
+    pdf_url: str | None = None
+    authors: list[str] | None = None
+    categories: list[str] | None = None
+    ai_summary_3lines: str | None = None
+    method_highlights: str | None = None
+    limitations: str | None = None
+    reproduction_difficulty: str | None = None
+    code_repo_url: str | None = None
 
 
 class SearchResponse(BaseModel):

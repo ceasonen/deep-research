@@ -8,7 +8,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/next.js-14-black.svg)](https://nextjs.org/)
 
-Search the live web, extract useful content, and generate evidence-backed answers with citations.
+Search the live web, or run an ArXiv-first AI paper radar with evidence-backed summaries.
 
 </div>
 
@@ -20,10 +20,13 @@ Search the live web, extract useful content, and generate evidence-backed answer
 
 ## Features
 - Multi-engine search aggregation (`duckduckgo`, `google`, `bing`, `brave`)
+- ArXiv-first mode for `cs.AI`, `cs.LG`, `cs.CL`, `cs.CV`, `stat.ML`
 - Async content fetch + robust text extraction
 - Optional light reranker (`cross-encoder/ms-marco-MiniLM-L-6-v2`)
 - Streaming answer generation through SSE
 - Citation-aware markdown answers (`[1]`, `[2]`, ...)
+- Per-paper AI value layer (`3-line summary`, method, limitations, reproducibility, code link)
+- Built-in PDF reader page for direct arXiv PDF viewing
 - FastAPI backend + Next.js frontend + Docker support
 
 ## Quick Start
@@ -75,10 +78,19 @@ curl -X POST http://localhost:8000/api/search \
   -d '{"query":"what is retrieval augmented generation","mode":"deep","stream":false}'
 ```
 
+### ArXiv Radar
+```bash
+curl -X POST http://localhost:8000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"query":"multimodal reasoning", "mode":"arxiv", "max_sources":8, "stream":false}'
+```
+
 ## Architecture
 
 ```text
-Query -> Multi-engine Search -> Content Fetch/Extract -> (Optional) Rerank -> LLM Synthesis -> Cited Answer
+`quick/deep/academic`: Query -> Multi-engine Search -> Content Fetch/Extract -> (Optional) Rerank -> LLM Synthesis -> Cited Answer
+
+`arxiv`: Query -> ArXiv API (time-sorted categories) -> Ranking -> Paper AI Analysis -> Cited Answer + PDF Reader
 ```
 
 See docs:

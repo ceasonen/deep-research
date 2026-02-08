@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Iterable
 
 from backend.config import get_settings
@@ -60,7 +61,12 @@ class Reranker:
         pairs = [(query, f"{item.get('title', '')}\n{item.get('content') or item.get('snippet', '')}") for item in candidates]
         scores = self.model.predict(pairs)
 
-        ranked = [ScoredText(score=float(score), payload=payload) for payload, score in zip(candidates, scores)]
+        ranked: list[ScoredText] = []
+        for payload, score in zip(candidates, scores):
+            normalized_score = float(score)
+            if not math.isfinite(normalized_score):
+                normalized_score = 0.0
+            ranked.append(ScoredText(score=normalized_score, payload=payload))
         ranked.sort(key=lambda item: item.score, reverse=True)
 
         output: list[dict] = []

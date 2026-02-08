@@ -54,3 +54,16 @@ async def test_search_stream_emits_events(monkeypatch):
     assert any("event: sources" in event for event in events)
     assert any("event: answer_chunk" in event for event in events)
     assert any("event: answer_end" in event for event in events)
+
+
+def test_sanitize_sources_normalizes_nan_score():
+    pipeline = SearchPipeline()
+    cleaned = pipeline._sanitize_sources(
+        [
+            {"title": "A", "url": "https://a.com", "snippet": "x", "relevance_score": float("nan")},
+            {"title": "B", "url": "https://b.com", "snippet": "y", "relevance_score": float("inf")},
+        ]
+    )
+
+    assert cleaned[0]["relevance_score"] == 0.0
+    assert cleaned[1]["relevance_score"] == 0.0

@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     search_max_results: int = 8
     search_region: str = "wt-wt"
     search_language: str = "en"
+    arxiv_base_url: str = "http://export.arxiv.org/api/query"
+    arxiv_categories: list[str] = Field(
+        default_factory=lambda: ["cs.AI", "cs.LG", "cs.CL", "cs.CV", "stat.ML"]
+    )
+    arxiv_min_interval_seconds: float = 3.0
+    arxiv_max_results: int = 24
 
     content_max_pages: int = 6
     content_max_length: int = 3500
@@ -52,7 +58,7 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:3000", "http://localhost:8000"]
     )
 
-    @field_validator("search_engines", "cors_origins", mode="before")
+    @field_validator("search_engines", "cors_origins", "arxiv_categories", mode="before")
     @classmethod
     def parse_list_fields(cls, value: object) -> object:
         if isinstance(value, str):

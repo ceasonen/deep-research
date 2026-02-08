@@ -8,7 +8,7 @@ import { SearchResults } from '@/components/SearchResults';
 import { useSearch } from '@/hooks/useSearch';
 
 export default function Page() {
-  const { answer, sources, loading, streaming, relatedQueries, runSearch, error, searchTime, modelUsed } = useSearch();
+  const { answer, sources, loading, streaming, relatedQueries, runSearch, error, searchTime, modelUsed, mode } = useSearch();
 
   return (
     <main className="min-h-screen bg-gradient-main pb-14 text-ink">
@@ -30,7 +30,7 @@ export default function Page() {
                 <button
                   key={item}
                   type="button"
-                  onClick={() => runSearch(item, 'quick')}
+                  onClick={() => runSearch(item, mode)}
                   className="rounded-full border border-ink/20 bg-sand px-3 py-1 text-xs transition hover:border-ember"
                 >
                   {item}

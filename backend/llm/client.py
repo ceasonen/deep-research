@@ -21,17 +21,33 @@ class LLMClient:
         except ImportError:
             return None
 
+        if (
+            self.settings.llm_provider == "openai"
+            and not self.settings.llm_api_key
+            and not self.settings.llm_base_url
+        ):
+            return None
+
         kwargs = {}
-        if self.settings.llm_api_key:
-            kwargs["api_key"] = self.settings.llm_api_key
         if self.settings.llm_base_url:
             kwargs["base_url"] = self.settings.llm_base_url
 
-        return AsyncOpenAI(**kwargs)
+        if self.settings.llm_api_key:
+            kwargs["api_key"] = self.settings.llm_api_key
+        elif self.settings.llm_base_url:
+            kwargs["api_key"] = "local-no-key"
+        else:
+            return None
+
+        try:
+            return AsyncOpenAI(**kwargs)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("OpenAI client init failed: %s", exc)
+            return None
 
     @property
     def is_available(self) -> bool:
-        return bool(self.settings.llm_api_key) or self.settings.llm_provider == "ollama"
+        return bool(self.settings.llm_api_key or self.settings.llm_base_url) or self.settings.llm_provider == "ollama"
 
     async def complete(self, system_prompt: str, user_prompt: str) -> str:
         if self._client is None:

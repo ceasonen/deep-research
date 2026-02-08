@@ -24,7 +24,7 @@ export function SearchBar({ loading, onSearch }: SearchBarProps) {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Ask anything with real-time sources..."
+          placeholder={mode === 'arxiv' ? 'Track latest papers in cs.AI/cs.LG/cs.CL/cs.CV/stat.ML...' : 'Ask anything with real-time sources...'}
           className="h-12 rounded-2xl border border-ink/20 bg-white px-4 text-sm text-ink outline-none ring-0 transition focus:border-ember"
         />
         <select
@@ -35,6 +35,7 @@ export function SearchBar({ loading, onSearch }: SearchBarProps) {
           <option value="quick">Quick</option>
           <option value="deep">Deep</option>
           <option value="academic">Academic</option>
+          <option value="arxiv">ArXiv Radar</option>
         </select>
         <button
           type="submit"
