@@ -1,18 +1,28 @@
 'use client';
 
+import { useCallback } from 'react';
+
+import { ApiConfigPanel } from '@/components/ApiConfigPanel';
 import { AnswerPanel } from '@/components/AnswerPanel';
 import { Header } from '@/components/Header';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 import { SearchBar } from '@/components/SearchBar';
 import { SearchResults } from '@/components/SearchResults';
 import { useSearch } from '@/hooks/useSearch';
+import { useRuntimeLLMConfig } from '@/hooks/useRuntimeLLMConfig';
 
 export default function Page() {
+  const { config: runtimeLLMConfig, save: saveRuntimeLLMConfig } = useRuntimeLLMConfig();
   const { answer, sources, loading, streaming, relatedQueries, runSearch, error, searchTime, modelUsed, mode, query } = useSearch();
   const hasResults = Boolean(answer || sources.length);
+  const runSearchWithConfig = useCallback(
+    (nextQuery: string, nextMode = mode) => runSearch(nextQuery, nextMode, true, runtimeLLMConfig || undefined),
+    [mode, runSearch, runtimeLLMConfig],
+  );
 
   return (
     <main className="app-shell route-fade min-h-screen bg-gradient-main pb-14 text-ink">
+      <ApiConfigPanel config={runtimeLLMConfig} onSave={saveRuntimeLLMConfig} />
       <div className="ambient-grid" />
       <div className="ambient-glow left" />
       <div className="ambient-glow right" />
@@ -25,7 +35,13 @@ export default function Page() {
       <Header />
 
       <section className="mx-auto grid w-full max-w-6xl gap-6 px-4">
-        <SearchBar loading={loading} onSearch={runSearch} initialMode={mode} initialQuery={query} />
+        <SearchBar
+          loading={loading}
+          onSearch={runSearchWithConfig}
+          initialMode={mode}
+          initialQuery={query}
+          runtimeModel={runtimeLLMConfig?.model}
+        />
         {!hasResults && !loading ? (
           <section className="glass-panel section-enter stagger-2 p-5">
             <p className="font-compact text-xs uppercase tracking-[0.22em] text-ink/60">Ready</p>
@@ -48,7 +64,7 @@ export default function Page() {
                 <button
                   key={item}
                   type="button"
-                  onClick={() => runSearch(item, mode)}
+                  onClick={() => runSearchWithConfig(item, mode)}
                   className="soft-ring hover-lift rounded-full border border-ink/20 bg-sand px-3 py-1 text-xs transition hover:border-ember"
                 >
                   {item}
@@ -70,7 +86,7 @@ export default function Page() {
           </button>
           <button
             type="button"
-            onClick={() => runSearch('latest multimodal reasoning papers', 'arxiv')}
+            onClick={() => runSearchWithConfig('latest multimodal reasoning papers', 'arxiv')}
             className="soft-ring hover-lift rounded-full border border-ink/20 bg-white/80 px-3 py-2 text-xs text-ink shadow-soft"
           >
             Fresh ArXiv

@@ -9,6 +9,7 @@ interface SearchBarProps {
   onSearch: (query: string, mode: SearchMode) => void;
   initialQuery?: string;
   initialMode?: SearchMode;
+  runtimeModel?: string;
 }
 
 const modeTips: Record<SearchMode, string> = {
@@ -32,7 +33,7 @@ const modeLabel: Record<SearchMode, string> = {
   arxiv: 'ArXiv',
 };
 
-export function SearchBar({ loading, onSearch, initialQuery, initialMode }: SearchBarProps) {
+export function SearchBar({ loading, onSearch, initialQuery, initialMode, runtimeModel }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<SearchMode>('quick');
   const presets = useMemo(() => modePresets[mode], [mode]);
@@ -94,6 +95,7 @@ export function SearchBar({ loading, onSearch, initialQuery, initialMode }: Sear
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-sand px-3 py-1 text-xs text-ink/75">{modeTips[mode]}</span>
+        {runtimeModel ? <span className="rounded-full bg-mint/25 px-3 py-1 text-xs text-ink/80">LLM: {runtimeModel}</span> : null}
         {presets.map((item) => (
           <button
             key={`${mode}-${item}`}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function getSafeArxivPdfUrl(raw: string | undefined): string {
@@ -11,6 +12,7 @@ function getSafeArxivPdfUrl(raw: string | undefined): string {
     const isArxiv = parsed.hostname === 'arxiv.org' || parsed.hostname.endsWith('.arxiv.org');
     const looksPdf = parsed.pathname.includes('/pdf/');
     if (isHttp && isArxiv && looksPdf) {
+      parsed.protocol = 'https:';
       return parsed.toString();
     }
     return '';
@@ -65,12 +67,18 @@ export function ReaderClient() {
           <h1 className="font-display text-2xl text-ink">{title}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/"
+            className="soft-ring hover-lift rounded-full border border-ink/20 bg-white/70 px-4 py-2 text-sm text-ink"
+          >
+            Home
+          </Link>
           <button
             type="button"
             onClick={goBack}
             className="soft-ring hover-lift rounded-full border border-ink/20 bg-white/70 px-4 py-2 text-sm text-ink"
           >
-            Back
+            Back Stack
           </button>
           {pdfUrl ? (
             <a
@@ -97,14 +105,22 @@ export function ReaderClient() {
                     </div>
                     <p className="mt-3 text-sm text-ink/70">Loading PDF viewer...</p>
                     {slowLoad ? (
-                      <a
-                        href={pdfUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 inline-flex rounded-full border border-ink/20 bg-white/80 px-4 py-2 text-xs text-ink"
-                      >
-                        If embed is blocked, open PDF in new tab
-                      </a>
+                      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                        <a
+                          href={pdfUrl}
+                          className="inline-flex rounded-full border border-ink/20 bg-white/85 px-4 py-2 text-xs text-ink"
+                        >
+                          Open in this tab
+                        </a>
+                        <a
+                          href={pdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex rounded-full border border-ink/20 bg-white/85 px-4 py-2 text-xs text-ink"
+                        >
+                          Open in new tab
+                        </a>
+                      </div>
                     ) : null}
                   </div>
                 </div>
