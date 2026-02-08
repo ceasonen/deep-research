@@ -88,7 +88,9 @@ class ArxivClient:
         entries: list[dict] = []
 
         for entry in root.findall("atom:entry", ATOM_NS):
-            id_url = (entry.findtext("atom:id", default="", namespaces=ATOM_NS) or "").strip()
+            id_url = self._normalize_arxiv_url(
+                (entry.findtext("atom:id", default="", namespaces=ATOM_NS) or "").strip()
+            )
             arxiv_id = id_url.rsplit("/", 1)[-1] if id_url else ""
             title = self._normalize_whitespace(
                 entry.findtext("atom:title", default="", namespaces=ATOM_NS) or ""
@@ -123,6 +125,7 @@ class ArxivClient:
             pdf_url = ""
             for link in entry.findall("atom:link", ATOM_NS):
                 href = link.attrib.get("href", "").strip()
+                href = self._normalize_arxiv_url(href)
                 link_type = link.attrib.get("type", "").strip()
                 link_title = link.attrib.get("title", "").strip().lower()
                 if not href:
@@ -132,7 +135,7 @@ class ArxivClient:
                     break
 
             if not pdf_url and arxiv_id:
-                pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
+                pdf_url = self._normalize_arxiv_url(f"https://arxiv.org/pdf/{arxiv_id}.pdf")
 
             entries.append(
                 {
@@ -189,3 +192,8 @@ class ArxivClient:
 
     def _normalize_whitespace(self, text: str) -> str:
         return " ".join(text.split())
+
+    def _normalize_arxiv_url(self, url: str) -> str:
+        if not url:
+            return ""
+        return url.replace("http://arxiv.org", "https://arxiv.org")

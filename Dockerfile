@@ -3,6 +3,7 @@ WORKDIR /app/frontend
 COPY frontend/package.json ./
 RUN npm install
 COPY frontend/ ./
+ENV NEXT_STATIC_EXPORT=true
 RUN npm run build
 
 FROM python:3.11-slim

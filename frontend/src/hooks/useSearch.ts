@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useSSE } from '@/hooks/useSSE';
 import { postSearch } from '@/lib/api';
-import type { SearchMode, SearchResponse, SearchSource } from '@/types';
+import type { RuntimeLLMConfig, SearchMode, SearchResponse, SearchSource } from '@/types';
 
 interface SearchState {
   query: string;
@@ -32,12 +32,53 @@ const initialState: SearchState = {
   error: null,
 };
 
+const STORAGE_KEY = 'autosearch:last-state:v1';
+
 export function useSearch() {
   const { streamSearch } = useSSE();
   const [state, setState] = useState<SearchState>(initialState);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        setHydrated(true);
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as Partial<SearchState>;
+      setState((prev) => ({
+        ...prev,
+        ...parsed,
+        loading: false,
+        streaming: false,
+        error: null,
+      }));
+    } catch {
+      // Ignore storage hydration errors and continue with defaults.
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      const snapshot: SearchState = {
+        ...state,
+        loading: false,
+        streaming: false,
+        error: null,
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [state, hydrated]);
 
   const runSearch = useCallback(
-    async (query: string, mode: SearchMode = 'quick', streaming = true) => {
+    async (query: string, mode: SearchMode = 'quick', streaming = true, llmConfig?: RuntimeLLMConfig) => {
       if (!query.trim()) return;
 
       setState((prev) => ({
@@ -54,7 +95,13 @@ export function useSearch() {
 
       if (!streaming) {
         try {
-          const response = await postSearch({ query, mode, max_sources: 6, stream: false });
+          const response = await postSearch({
+            query,
+            mode,
+            max_sources: 6,
+            stream: false,
+            llm_config: llmConfig,
+          });
           const data = (await response.json()) as SearchResponse;
           setState((prev) => ({
             ...prev,
@@ -72,7 +119,7 @@ export function useSearch() {
       }
 
       await streamSearch(
-        { query, mode, max_sources: 6, language: 'en' },
+        { query, mode, max_sources: 6, language: 'en', llm_config: llmConfig },
         {
           onEvent: (event, data) => {
             if (event === 'sources') {
@@ -117,7 +164,14 @@ export function useSearch() {
     [streamSearch],
   );
 
-  const reset = useCallback(() => setState(initialState), []);
+  const reset = useCallback(() => {
+    setState(initialState);
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore storage delete failures.
+    }
+  }, []);
 
   return useMemo(() => ({ ...state, runSearch, reset }), [state, runSearch, reset]);
 }

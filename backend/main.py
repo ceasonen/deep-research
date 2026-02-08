@@ -70,6 +70,32 @@ async def root():
     }
 
 
+@app.get("/{asset_path:path}")
+async def frontend_asset(asset_path: str):
+    if not frontend_export.exists():
+        raise HTTPException(status_code=404, detail="Frontend export not found")
+
+    cleaned = asset_path.strip("/")
+    if not cleaned:
+        index = frontend_export / "index.html"
+        if index.exists():
+            return FileResponse(index)
+        raise HTTPException(status_code=404, detail="index.html not found")
+
+    target = frontend_export / cleaned
+    if target.is_file():
+        return FileResponse(target)
+
+    html_target = frontend_export / f"{cleaned}.html"
+    if html_target.is_file():
+        return FileResponse(html_target)
+
+    not_found = frontend_export / "404.html"
+    if not_found.is_file():
+        return FileResponse(not_found, status_code=404)
+    raise HTTPException(status_code=404, detail="Not found")
+
+
 def run_cli() -> None:
     parser = argparse.ArgumentParser(prog="autosearch", description="AutoSearch AI CLI")
     parser.add_argument("command", nargs="?", default="serve", choices=["serve"])

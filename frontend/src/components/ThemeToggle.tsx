@@ -23,9 +23,9 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      className="rounded-full border border-ink/20 bg-white/70 px-4 py-2 text-sm font-medium text-ink shadow-soft transition hover:-translate-y-0.5"
+      className="soft-ring hover-lift rounded-full border border-ink/20 bg-white/70 px-4 py-2 text-sm font-medium text-ink shadow-soft"
     >
-      {theme === 'light' ? 'Dark' : 'Light'}
+      {theme === 'light' ? 'Night' : 'Day'}
     </button>
   );
 }

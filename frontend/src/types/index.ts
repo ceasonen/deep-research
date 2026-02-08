@@ -1,5 +1,13 @@
 export type SearchMode = 'quick' | 'deep' | 'academic' | 'arxiv';
 
+export interface RuntimeLLMConfig {
+  base_url?: string;
+  api_key?: string;
+  model?: string;
+  temperature?: number;
+  max_tokens?: number;
+}
+
 export interface SearchSource {
   title: string;
   url: string;

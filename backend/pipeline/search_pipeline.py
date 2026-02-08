@@ -62,6 +62,12 @@ class SearchPipeline:
 
         return enriched[: request.max_sources]
 
+    def _request_llm_config(self, request: SearchRequest) -> dict | None:
+        if request.llm_config is None:
+            return None
+        payload = request.llm_config.model_dump(exclude_none=True)
+        return payload or None
+
     async def _retrieve_arxiv(self, request: SearchRequest) -> list[dict]:
         target_size = min(
             self.settings.arxiv_max_results,
@@ -76,6 +82,7 @@ class SearchPipeline:
         analyzed = await self.paper_analyzer.analyze_many(
             papers=ranked[: request.max_sources],
             query=request.query,
+            llm_config=self._request_llm_config(request),
         )
         return [self._paper_to_source(paper) for paper in analyzed]
 
@@ -113,29 +120,34 @@ class SearchPipeline:
         ]
 
     async def _build_answer(self, request: SearchRequest, sources: list[dict]) -> str:
+        llm_config = self._request_llm_config(request)
         if request.mode != SearchMode.ARXIV:
             return await self.synthesizer.generate(
                 query=request.query,
                 sources=sources,
                 language=request.language,
+                llm_config=llm_config,
             )
 
-        if self.synthesizer.client.is_available:
+        if self.synthesizer.client.is_available_for(llm_config):
             return await self.synthesizer.generate(
                 query=f"Summarize latest arXiv papers about: {request.query}",
                 sources=sources,
                 language=request.language,
+                llm_config=llm_config,
             )
         return self._arxiv_fallback_answer(sources)
 
     async def _stream_answer(
         self, request: SearchRequest, sources: list[dict]
     ) -> AsyncGenerator[str, None]:
-        if request.mode != SearchMode.ARXIV or self.synthesizer.client.is_available:
+        llm_config = self._request_llm_config(request)
+        if request.mode != SearchMode.ARXIV or self.synthesizer.client.is_available_for(llm_config):
             async for chunk in self.synthesizer.stream(
                 query=request.query,
                 sources=sources,
                 language=request.language,
+                llm_config=llm_config,
             ):
                 yield chunk
             return
@@ -155,6 +167,11 @@ class SearchPipeline:
             lines.append(f"- Limits: {limits}")
         return "\n".join(lines)
 
+    def _model_used(self, request: SearchRequest) -> str:
+        if request.llm_config and request.llm_config.model:
+            return request.llm_config.model
+        return self.settings.llm_model
+
     async def search_sync(self, request: SearchRequest) -> dict:
         cache_key = f"{request.query}:{request.mode}:{request.max_sources}:{request.language}"
         if self.settings.cache_enabled:
@@ -173,7 +190,7 @@ class SearchPipeline:
             "sources": self._sanitize_sources(sources),
             "related_queries": self._related_queries(request.query, request.mode),
             "search_time": round(elapsed, 3),
-            "model_used": self.settings.llm_model,
+            "model_used": self._model_used(request),
         }
 
         if self.settings.cache_enabled:
@@ -200,7 +217,7 @@ class SearchPipeline:
                 "sources": safe_sources,
                 "related_queries": self._related_queries(request.query, request.mode),
                 "search_time": round(elapsed, 3),
-                "model_used": self.settings.llm_model,
+                "model_used": self._model_used(request),
             }
             yield to_sse("answer_end", payload)
         except Exception as exc:

@@ -66,7 +66,16 @@ class Settings(BaseSettings):
             if stripped.startswith("[") and stripped.endswith("]"):
                 import json
 
-                return json.loads(stripped)
+                try:
+                    return json.loads(stripped)
+                except json.JSONDecodeError:
+                    # Fallback for loose env formats like:
+                    # ['cs.AI','cs.LG'] or [cs.AI, cs.LG]
+                    inner = stripped[1:-1].strip()
+                    if not inner:
+                        return []
+                    parts = [item.strip().strip("'").strip('"') for item in inner.split(",")]
+                    return [item for item in parts if item]
             return [item.strip() for item in stripped.split(",") if item.strip()]
         return value
 

@@ -14,12 +14,21 @@ class SearchMode(str, Enum):
     ARXIV = "arxiv"
 
 
+class RuntimeLLMConfig(BaseModel):
+    base_url: str | None = None
+    api_key: str | None = None
+    model: str | None = None
+    temperature: float | None = Field(default=None, ge=0.0, le=2.0)
+    max_tokens: int | None = Field(default=None, ge=64, le=32768)
+
+
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000)
     mode: SearchMode = SearchMode.QUICK
     max_sources: int = Field(default=6, ge=1, le=20)
     language: str = "en"
     stream: bool = True
+    llm_config: RuntimeLLMConfig | None = None
 
 
 class SearchSource(BaseModel):

@@ -15,18 +15,20 @@ class ArxivPaperAnalyzer:
     def __init__(self) -> None:
         self.client = LLMClient()
 
-    async def analyze_many(self, papers: list[dict], query: str) -> list[dict]:
+    async def analyze_many(
+        self, papers: list[dict], query: str, llm_config: dict | None = None
+    ) -> list[dict]:
         enriched: list[dict] = []
         for paper in papers:
-            analysis = await self.analyze_paper(query=query, paper=paper)
+            analysis = await self.analyze_paper(query=query, paper=paper, llm_config=llm_config)
             item = dict(paper)
             item.update(analysis)
             enriched.append(item)
         return enriched
 
-    async def analyze_paper(self, query: str, paper: dict) -> dict:
+    async def analyze_paper(self, query: str, paper: dict, llm_config: dict | None = None) -> dict:
         fallback = self._fallback_analysis(paper)
-        if not self.client.is_available:
+        if not self.client.is_available_for(llm_config):
             return fallback
 
         system_prompt = (
@@ -44,7 +46,11 @@ class ArxivPaperAnalyzer:
         )
 
         try:
-            raw = await self.client.complete(system_prompt=system_prompt, user_prompt=user_prompt)
+            raw = await self.client.complete(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                runtime_config=llm_config,
+            )
             parsed = self._parse_json(raw)
             if not parsed:
                 return fallback
