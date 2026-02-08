@@ -20,12 +20,12 @@
 
 body {
   margin: 0;
-  font-family: var(--font-body), 'Space Grotesk', sans-serif;
+  font-family: 'Avenir Next', 'Segoe UI', 'Trebuchet MS', sans-serif;
   color: var(--ink);
 }
 
 .font-display {
-  font-family: var(--font-display), 'Fraunces', serif;
+  font-family: 'Iowan Old Style', 'Baskerville', 'Palatino Linotype', serif;
 }
 
 .bg-gradient-main {
