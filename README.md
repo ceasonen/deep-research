@@ -1,46 +1,49 @@
-<div align="center">
-
 # AutoSearch AI
 
-### Your Open-Source Real-Time AI Search Engine
+Open-source real-time AI search with source citations, plus an ArXiv-focused paper radar and built-in PDF reader.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Next.js](https://img.shields.io/badge/next.js-14-black.svg)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/next.js-15-black.svg)](https://nextjs.org/)
 
-Search the live web, or run an ArXiv-first AI paper radar with evidence-backed summaries.
+## Highlights
 
-</div>
+- Search modes: `quick`, `deep`, `academic`, `arxiv`
+- Multi-engine web aggregation: `duckduckgo`, `google`, `bing`, `brave`
+- Async fetch + extraction pipeline with optional reranker (`cross-encoder/ms-marco-MiniLM-L-6-v2`)
+- SSE streaming answers and non-stream JSON responses
+- Citation-aware markdown output with follow-up query suggestions
+- ArXiv enrichment (`summary`, `method`, `limitations`, `repro difficulty`, `code link`) + `/reader` PDF page
+- Runtime LLM override (OpenAI-compatible base URL/key/model per request)
+- FastAPI backend + Next.js frontend + Docker Compose
 
-## Why this project
-- Replaces paid/closed AI search tools with a self-hosted stack.
-- Runs with free search by default (`DuckDuckGo`), optional premium engines.
-- Supports both cloud LLM APIs and local OpenAI-compatible providers (e.g., Ollama).
-- Designed for quick deploy, clear architecture, and contributor friendliness.
+## Project Structure
 
-## Features
-- Multi-engine search aggregation (`duckduckgo`, `google`, `bing`, `brave`)
-- ArXiv-first mode for `cs.AI`, `cs.LG`, `cs.CL`, `cs.CV`, `stat.ML`
-- Async content fetch + robust text extraction
-- Optional light reranker (`cross-encoder/ms-marco-MiniLM-L-6-v2`)
-- Streaming answer generation through SSE
-- Citation-aware markdown answers (`[1]`, `[2]`, ...)
-- Per-paper AI value layer (`3-line summary`, method, limitations, reproducibility, code link)
-- Built-in PDF reader page for direct arXiv PDF viewing
-- FastAPI backend + Next.js frontend + Docker support
+```text
+backend/
+  arxiv/       # arXiv client + paper analysis
+  content/     # page fetch + text extraction
+  llm/         # OpenAI-compatible client + synthesis
+  pipeline/    # end-to-end orchestration + SSE events
+  search/      # search engine adapters + aggregator
+frontend/
+  src/app/     # Next.js app routes (`/` and `/reader`)
+tests/         # API and pipeline tests
+docs/          # architecture, API reference, deployment, contributing
+```
 
 ## Quick Start
 
 ### 1) Local development
+
 ```bash
-git clone https://github.com/yourusername/autosearch-ai.git
-cd autosearch-ai
 cp .env.example .env
 pip install -e ".[all]"
 uvicorn backend.main:app --reload --port 8000
 ```
 
 In another terminal:
+
 ```bash
 cd frontend
 npm install
@@ -49,7 +52,14 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-### 2) Docker
+Optional one-command startup on macOS:
+
+```bash
+./start_dev.command
+```
+
+### 2) Docker Compose
+
 ```bash
 cp .env.example .env
 docker compose up --build
@@ -57,14 +67,26 @@ docker compose up --build
 
 Open `http://localhost:8000`.
 
+## Configuration
+
+Use `.env` (see `.env.example`) to configure:
+
+- LLM provider and defaults (`LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`)
+- Auto key-file fallback (`LLM_API_KEY_FILE=key.txt`)
+- Search engines and limits (`SEARCH_ENGINES`, `SEARCH_MAX_RESULTS`)
+- ArXiv categories and fetch budget (`ARXIV_CATEGORIES`, `ARXIV_MAX_RESULTS`, `ARXIV_ANALYSIS_LLM_BUDGET`)
+- Reranker, cache, and CORS behavior
+
 ## API
 
 ### Health
+
 ```bash
 curl http://localhost:8000/api/health
 ```
 
 ### Search (streaming)
+
 ```bash
 curl -N -X POST http://localhost:8000/api/search \
   -H "Content-Type: application/json" \
@@ -72,20 +94,35 @@ curl -N -X POST http://localhost:8000/api/search \
 ```
 
 ### Search (non-streaming)
+
 ```bash
 curl -X POST http://localhost:8000/api/search \
   -H "Content-Type: application/json" \
   -d '{"query":"what is retrieval augmented generation","mode":"deep","stream":false}'
 ```
 
-### ArXiv Radar
+### ArXiv mode
+
 ```bash
 curl -X POST http://localhost:8000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query":"multimodal reasoning", "mode":"arxiv", "max_sources":8, "stream":false}'
+  -d '{"query":"multimodal reasoning","mode":"arxiv","max_sources":8,"stream":false}'
 ```
 
-### Runtime LLM Override (OpenAI-compatible endpoint)
+### Verify runtime LLM config
+
+```bash
+curl -X POST http://localhost:8000/api/llm/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "base_url":"https://api.groq.com/openai/v1",
+    "api_key":"YOUR_KEY",
+    "model":"llama-3.3-70b-versatile"
+  }'
+```
+
+### Runtime LLM override per search request
+
 ```bash
 curl -X POST http://localhost:8000/api/search \
   -H "Content-Type: application/json" \
@@ -101,32 +138,29 @@ curl -X POST http://localhost:8000/api/search \
   }'
 ```
 
-## Architecture
+## Development
 
-```text
-`quick/deep/academic`: Query -> Multi-engine Search -> Content Fetch/Extract -> (Optional) Rerank -> LLM Synthesis -> Cited Answer
+Run backend tests:
 
-`arxiv`: Query -> ArXiv API (time-sorted categories) -> Ranking -> Paper AI Analysis -> Cited Answer + PDF Reader
+```bash
+pytest
 ```
 
-See docs:
+Frontend checks:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+## Docs
+
 - `docs/architecture.md`
 - `docs/api-reference.md`
 - `docs/deployment.md`
 - `docs/contributing.md`
 
-## Roadmap
-- [x] Core search + answer pipeline
-- [x] Streaming SSE API
-- [x] Next.js frontend
-- [x] Docker deployment
-- [ ] Session memory and follow-up questions
-- [ ] Knowledge graph visualization
-- [ ] Browser extension
-- [ ] Team workspaces and auth
-
-## Contributing
-PRs and issues are welcome. Please read `docs/contributing.md` first.
-
 ## License
+
 MIT - see `LICENSE`.
