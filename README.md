@@ -85,6 +85,22 @@ curl -X POST http://localhost:8000/api/search \
   -d '{"query":"multimodal reasoning", "mode":"arxiv", "max_sources":8, "stream":false}'
 ```
 
+### Runtime LLM Override (OpenAI-compatible endpoint)
+```bash
+curl -X POST http://localhost:8000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query":"summarize latest test-time scaling papers",
+    "mode":"arxiv",
+    "stream":false,
+    "llm_config":{
+      "base_url":"https://api.groq.com/openai/v1",
+      "api_key":"YOUR_KEY",
+      "model":"llama-3.3-70b-versatile"
+    }
+  }'
+```
+
 ## Architecture
 
 ```text

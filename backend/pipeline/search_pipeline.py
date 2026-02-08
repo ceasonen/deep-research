@@ -173,7 +173,18 @@ class SearchPipeline:
         return self.settings.llm_model
 
     async def search_sync(self, request: SearchRequest) -> dict:
-        cache_key = f"{request.query}:{request.mode}:{request.max_sources}:{request.language}"
+        llm_cfg = self._request_llm_config(request) or {}
+        llm_cache_marker = "|".join(
+            [
+                str(llm_cfg.get("base_url", "")),
+                str(llm_cfg.get("model", "")),
+                str(llm_cfg.get("temperature", "")),
+                str(llm_cfg.get("max_tokens", "")),
+            ]
+        )
+        cache_key = (
+            f"{request.query}:{request.mode}:{request.max_sources}:{request.language}:{llm_cache_marker}"
+        )
         if self.settings.cache_enabled:
             cached = self.cache.get(cache_key)
             if cached:
