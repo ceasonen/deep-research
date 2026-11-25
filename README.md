@@ -1,5 +1,8 @@
 # AutoSearch AI
 
+[Live project page](https://ceasonen.github.io/deep-research/) · [Standalone showcase source](docs/showcase/)
+
+
 Open-source real-time AI search with source citations, plus an ArXiv-focused paper radar and built-in PDF reader.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
